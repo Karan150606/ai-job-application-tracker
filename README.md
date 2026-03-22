@@ -92,6 +92,11 @@ Replace these in the workflow:
 - `YOUR_NOTION_DATABASE_ID` — from Notion URL
 - `YOUR_NOTION_API_KEY` — from integrations page
 
+## 📸 Screenshots
+
+### n8n Workflow
+![Workflow](screenshots/workflow.png)
+
 ## 👤 Author
 
 Built by Karan — IT student at sri krishna college of technology
