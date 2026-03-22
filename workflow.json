@@ -1,0 +1,275 @@
+{
+  "name": "Job Application Tracker",
+  "nodes": [
+    {
+      "parameters": {
+        "pollTimes": {
+          "item": [
+            {
+              "mode": "everyMinute"
+            }
+          ]
+        },
+        "documentId": {
+          "__rl": true,
+          "value": "1St36n1IRyxOV2YCp4dwj148O9MRldtCSJ46VgRP-OR4",
+          "mode": "list",
+          "cachedResultName": "Job Application ",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/1St36n1IRyxOV2YCp4dwj148O9MRldtCSJ46VgRP-OR4/edit?usp=drivesdk"
+        },
+        "sheetName": {
+          "__rl": true,
+          "value": 1638439622,
+          "mode": "list",
+          "cachedResultName": "Form Responses 1",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/1St36n1IRyxOV2YCp4dwj148O9MRldtCSJ46VgRP-OR4/edit#gid=1638439622"
+        },
+        "event": "rowAdded",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.googleSheetsTrigger",
+      "typeVersion": 1,
+      "position": [
+        0,
+        0
+      ],
+      "id": "d73de596-8305-4593-acea-624a239a63d7",
+      "name": "Google Sheets Trigger",
+      "credentials": {
+        "googleSheetsTriggerOAuth2Api": {
+          "id": "5a5kvaN8nENdBgHf",
+          "name": "Google Sheets Trigger account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=AIzaSyClty8Z7i5bYNctArXKW4-zzmpeAkTvkuA",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={\n  \"contents\": [\n    {\n      \"parts\": [\n        {\n          \"text\": \"You are a job application assistant.\\n\\nGiven this job description:\\n{{ $json.jobDescription }}\\n\\nThe applicant is a CS student with skills in: web dev, Firebase, ESP32, REST APIs, n8n, Python.\\n\\nReturn ONLY a JSON object (no markdown, no backticks) with:\\n{\\n  \\\"summary\\\": \\\"2-sentence summary of the role\\\",\\n  \\\"fit_score\\\": <number from 1-10>,\\n  \\\"fit_reason\\\": \\\"1 sentence on why they are or aren't a fit\\\"\\n}\"\n        }\n      ]\n    }\n  ]\n}",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.3,
+      "position": [
+        416,
+        0
+      ],
+      "id": "1a1f7283-6606-46b7-b6b9-42778a68454e",
+      "name": "HTTP Request"
+    },
+    {
+      "parameters": {
+        "jsCode": "const geminiResponse = $input.first().json;\nconst raw = geminiResponse.candidates[0].content.parts[0].text;\nconst cleaned = raw.replace(/```json|```/g, '').trim();\nconst parsed = JSON.parse(cleaned);\n\nconst sheets = $('Edit Fields').first().json;\n\nreturn [{ json: { \n  summary: parsed.summary,\n  fit_score: parsed.fit_score,\n  fit_reason: parsed.fit_reason,\n  companyName: sheets.companyName,\n  jobTitle: sheets.jobTitle,\n  applicationDate: sheets.applicationDate,\n  applicationLink: sheets.applicationLink\n}}];\n"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        624,
+        0
+      ],
+      "id": "ed661aec-f0dd-4f96-a7cb-71fca198fbbe",
+      "name": "Code in JavaScript"
+    },
+    {
+      "parameters": {
+        "resource": "databasePage",
+        "databaseId": {
+          "__rl": true,
+          "value": "31f6a4e1-af5c-8087-b713-d006199822a7",
+          "mode": "id"
+        },
+        "title": "={{ $json.companyName }}",
+        "propertiesUi": {
+          "propertyValues": [
+            {
+              "key": "Job Title|rich_text",
+              "textContent": "={{ $json.jobTitle }}"
+            },
+            {
+              "key": "Date Applied|date",
+              "date": "={{ $json.applicationDate }}"
+            },
+            {
+              "key": "AI Summary|rich_text",
+              "textContent": "={{ $json.summary }}\n"
+            },
+            {
+              "key": "Fit Score|number",
+              "numberValue": "={{ $json.fit_score }}"
+            },
+            {
+              "key": "Link|url",
+              "urlValue": "={{ $json.applicationLink }}"
+            },
+            {
+              "key": "Status|select",
+              "selectValue": "Applied"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.notion",
+      "typeVersion": 2.2,
+      "position": [
+        848,
+        0
+      ],
+      "id": "38698a68-bd3c-46a9-a09a-3d554a430498",
+      "name": "Create a database page",
+      "credentials": {
+        "notionApi": {
+          "id": "Xe0E6Nx4VZpUpI41",
+          "name": "Notion account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "sendTo": "keepgrindinng1506@gmail.com",
+        "subject": "=✅ New Application: {{ $json.property_job_title }} at {{ $json.name }}",
+        "emailType": "text",
+        "message": "=Application Logged!\n\nRole: {{ $json.property_job_title }}\nCompany: {{ $json.name }}\nAI Summary: {{ $('Code in JavaScript').item.json.summary }}\nFit Score: {{ $('Code in JavaScript').item.json.fit_score }}/10\nReason: {{ $('Code in JavaScript').item.json.fit_reason }}\n\nGood luck!",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.gmail",
+      "typeVersion": 2.2,
+      "position": [
+        1040,
+        0
+      ],
+      "id": "c549a84a-0a22-4bcd-afc4-962f6f19299f",
+      "name": "Send a message",
+      "webhookId": "238d233a-d79c-47a8-a0e7-d51e8d3cd8f4",
+      "credentials": {
+        "gmailOAuth2": {
+          "id": "S2XOdOC0qQpAYzT5",
+          "name": "Gmail account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "56594859-9342-4d93-9bfd-22919530d601",
+              "name": "companyName",
+              "value": "={{ $json['Company Name '] }}",
+              "type": "string"
+            },
+            {
+              "id": "c755de04-ac5b-425f-a972-f94819610872",
+              "name": "jobTitle",
+              "value": "={{ $json['  Job Title  '] }}",
+              "type": "string"
+            },
+            {
+              "id": "2b5cf1c8-ce17-4b64-b7d3-acecf88f02d9",
+              "name": "applicationDate",
+              "value": "={{ $json['  Application Date  '] }}",
+              "type": "string"
+            },
+            {
+              "id": "32ab261b-13d9-40b7-9368-404b217a160d",
+              "name": "applicationLink",
+              "value": "={{ $json['  Application Link  '] }}",
+              "type": "string"
+            },
+            {
+              "id": "da30d16b-daf9-4796-a7fd-d02ddf28cb4c",
+              "name": "jobDescription",
+              "value": "={{ $json['  Job Description  '] }}",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        208,
+        0
+      ],
+      "id": "f5369dc1-7814-4194-a2c0-32d506114a68",
+      "name": "Edit Fields"
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "Google Sheets Trigger": {
+      "main": [
+        [
+          {
+            "node": "Edit Fields",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "HTTP Request": {
+      "main": [
+        [
+          {
+            "node": "Code in JavaScript",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Code in JavaScript": {
+      "main": [
+        [
+          {
+            "node": "Create a database page",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Create a database page": {
+      "main": [
+        [
+          {
+            "node": "Send a message",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Edit Fields": {
+      "main": [
+        [
+          {
+            "node": "HTTP Request",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1",
+    "availableInMCP": false,
+    "timeSavedMode": "fixed",
+    "callerPolicy": "workflowsFromSameOwner",
+    "timeSavedPerExecution": 1
+  },
+  "versionId": "7706c3f6-9cbf-40f5-8b05-8ae38b9bf7e2",
+  "meta": {
+    "templateCredsSetupCompleted": true,
+    "instanceId": "4956697033fd63363f334cfa2a4d1e1666756808cceadb03ffb926f9df584325"
+  },
+  "id": "HJM66CPQ_MZgWYbENiz0p",
+  "tags": []
+}
